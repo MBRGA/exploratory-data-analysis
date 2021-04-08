@@ -1,3 +1,4 @@
+
 library(dplyr)
 library(ggplot2)
 library(tidyr)
@@ -22,17 +23,17 @@ co2 <- data.frame(Year = rep(1959:1997, each = 12),
 ## geom_density
 diamonds %>% 
   ggplot(aes(x = price)) + 
-  geom_density()
+  geom_density(adjust = 0.5)
 
 ## geom_histogram
 diamonds %>% 
   ggplot(aes(x = price)) + 
-  geom_histogram()
+  geom_histogram(bins=200)
 
 ## geom_freqpoly
 diamonds %>% 
   ggplot(aes(x = price)) + 
-  geom_freqpoly()
+  geom_freqpoly(bins=200)
 
 ## additional parameters control smoothing (see ?geom_xxx)
 
@@ -57,18 +58,26 @@ diamonds %>% ggplot(aes(x = carat, y = price)) +
 # courses
 diamonds %>% ggplot(aes(x = carat, y = price)) + 
   geom_point() + 
-  geom_smooth()
+  geom_smooth(method="lm")
 
 # EXERCISE: adapt the code you just used to fit a straight line rather than a smooth
 
 ## geom_line
 
-co2 %>% filter(Month == "January") %>%
+co2 %>% 
   ggplot(aes(x = Year, y = co2)) + 
-  geom_line()
+  geom_line(aes(color=Month))
+
+co2 %>% 
+  ggplot(aes(x = Year, y = co2)) + 
+  geom_line() + facet_wrap(~ Month)
 
 # EXERCISE: show lines for all 12 months on the plot (a) by using fill or colour, 
 # (b) without using fill or colour
+
+co2 %>% mutate(month_no=as.numeric(factor(Month, c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")))) %>%
+  ggplot(aes(x = month_no, y = co2)) + 
+  geom_line(aes(colour = Year, group=Year))
 
 # EXERCISE: flip Month and Year around so that each line represents a Year, and the 
 # Month is on the x-axis
@@ -112,10 +121,37 @@ diamonds %>%
 # Try facetting by cut and grouping by carat. Try facetting by carat and grouping by cut. 
 # Which do you prefer?
 
+diamonds %>% 
+  ggplot(aes(x = cut_interval(carat, n=5), y = price)) +
+  geom_bar(stat="summary", fun="mean") +
+  facet_wrap(~ cut)
+
+
+diamonds %>% 
+  ggplot(aes(x = cut, y = price)) +
+  geom_bar(stat="summary", fun="mean") +
+  facet_wrap(~ cut_interval(carat, n=5))
+
+
+# I think I prefer the first option.Unless we are trying to demonstrate that cut has little impact on price.
+
 # EXERCISE: Compare the relationship between price and carat for each colour.
 # What makes it hard to compare the groups? Is grouping better or facetting? 
 # If you use facetting, what annotation might you add to make it easier to see 
 # the differences between panels?
+
+diamonds %>% 
+  ggplot(aes(x = cut_interval(carat, n=5), y = price)) +
+  geom_bar(stat="summary", fun="mean") +
+  facet_wrap(~ color)
+
+
+diamonds %>% 
+  ggplot(aes(x = color, y = price)) +
+  geom_bar(stat="summary", fun="mean") +
+  facet_wrap(~ cut_interval(carat, n=5))
+
+# Might be helpful to label the number of samples in each case....
 
 ### Labels (labs)
 
@@ -223,22 +259,31 @@ pp +
 # EXERCISE: choose any of the plots you've made and add axis labels, title, and 
 # subtitle
 
+co2 %>% mutate(month_no=as.numeric(factor(Month, c("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")))) %>%
+  ggplot(aes(x = month_no, y = co2)) + 
+  geom_line(aes(colour = Year, group=Year)) +
+  labs(x = "Month of year", y = expression(CO[2]~concentration~(ppm)), title="Atmospheric carbon dioxide",
+       subtitle = "in parts per million, by Calendar Year")
+
 # EXERCISE: Improve the plot below by adding appropriate axis labels, 
 # rotating the x axis text so that it is vertical, and change
 # the axis text so that it does not include numbers in scientific notation
 
 diamonds %>%
-  ggplot(aes(x = cut_interval(price, n = 5))) + 
-  geom_bar()
+  ggplot(aes(x = cut_interval(price, n = 5, labels=c("[0, 4.0k]", "[4.0k, 7.7k]", "[7.7k, 11.4k]", "[11.4k, 15.1k]", "[15.1k, 18.8k]")))) + 
+  geom_bar() + 
+  labs(x = "Price Band", y = "Count") + 
+  theme(axis.text.x = element_text(angle=90))
 
 # EXERCISE: Use geom_label to add a label to the plot below that identifies 
 # the diamond with the largest value-per-carat. Bonus: make the labelling 
 # "automatic" so that it still works if you resample another 10 diamonds 
 # (make the label's location dynamic, rather than at a fixed (x,y) location)
 
-diamonds %>% sample_n(10) %>%
+diamonds %>% sample_n(10) %>% mutate(plab=ifelse(price/carat == max(price/carat), "Best Value", NA)) %>%
   ggplot(aes(x = carat, y = price)) + 
-  geom_point()
+  geom_point() + 
+  geom_label(aes(label=plab, x=carat-0.2))
 
 ### Adding geoms from different datasets
 
